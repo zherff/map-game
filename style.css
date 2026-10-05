@@ -1,0 +1,9 @@
+body {
+  background-color: black;
+  color:hotpink ;
+
+  #map{
+    height: 400px;
+    width: 600px;
+  }
+}
