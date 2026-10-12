@@ -28,16 +28,18 @@ const totalSquares = gridWidth * gridWidth;
 const gridLatitude = 54.016;
 const gridLongitude = -1.076;
 
+let watchId = null;
+
 
 // ========================================
 // FIND THE HTML ELEMENTS WE NEED
 // ========================================
 
-const locationButton = document.getElementById("locationButton");
-const testLocationButton = document.getElementById("testLocationButton");
+const startWalkButton = document.getElementById("startWalkButton");
+const stopWalkButton = document.getElementById("stopWalkButton");const testLocationButton = document.getElementById("testLocationButton");
 const resetButton = document.getElementById("resetButton");
 const squareCount = document.getElementById("squareCount");
-
+const trackingStatus = document.getElementById("trackingStatus");
 // Show the correct saved count when the page first loads.
 squareCount.textContent = collectedSquares.length + " / " + totalSquares;
 
@@ -190,9 +192,21 @@ function showPosition(position) {
 // BUTTONS AND TESTING TOOLS
 // ========================================
 
-// Ask the browser for the device's real location.
-locationButton.addEventListener("click", function () {
-  navigator.geolocation.getCurrentPosition(showPosition);
+//phone keeps sending location updates? start and stop walk button
+
+startWalkButton.addEventListener("click", function () {
+  if (watchId === null) {
+    watchId = navigator.geolocation.watchPosition(showPosition);
+    trackingStatus.textContent = "On";
+  }
+});
+
+stopWalkButton.addEventListener("click", function () {
+  if (watchId !== null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+    trackingStatus.textContent = "Off";
+  }
 });
 
 // Pretend the player is standing in the centre cell.
@@ -200,7 +214,8 @@ locationButton.addEventListener("click", function () {
 testLocationButton.addEventListener("click", function () {
   checkPlayerLocation(gridLatitude, gridLongitude);
 });
-
+/* 
+currently disabled - annoying on phone
 // Clicking anywhere on the map also acts as a fake location.
 // This is only a development/testing tool.
 map.on("click", function (event) {
@@ -209,7 +224,7 @@ map.on("click", function (event) {
 
   checkPlayerLocation(latitude, longitude);
 });
-
+*/
 
 // ========================================
 // RESET PROGRESS
