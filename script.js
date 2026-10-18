@@ -30,16 +30,18 @@ const gridLongitude = -1.076;
 
 let watchId = null;
 
-
+let followPlayer = false; 
 // ========================================
 // FIND THE HTML ELEMENTS WE NEED
 // ========================================
 
 const startWalkButton = document.getElementById("startWalkButton");
-const stopWalkButton = document.getElementById("stopWalkButton");const testLocationButton = document.getElementById("testLocationButton");
+const stopWalkButton = document.getElementById("stopWalkButton");
+const testLocationButton = document.getElementById("testLocationButton");
 const resetButton = document.getElementById("resetButton");
 const squareCount = document.getElementById("squareCount");
 const trackingStatus = document.getElementById("trackingStatus");
+const recentreButton = document.getElementById("recentreButton");
 // Show the correct saved count when the page first loads.
 squareCount.textContent = collectedSquares.length + " / " + totalSquares;
 
@@ -181,13 +183,22 @@ function showPosition(position) {
   marker.setLatLng([latitude, longitude]);
 
   // Move the map view to the player.
-  map.setView([latitude, longitude], 16);
+ if (followPlayer === true) {
+    map.panTo([latitude, longitude]);
+  }
 
   // See whether the player has entered a grid cell.
   checkPlayerLocation(latitude, longitude);
 }
+ // map stops moving if dragged or zoomed 
 
+map.on("dragstart", function () {
+  followPlayer = false;
+});
 
+map.on("zoomstart", function () {
+  followPlayer = false;
+});
 // ========================================
 // BUTTONS AND TESTING TOOLS
 // ========================================
@@ -196,7 +207,10 @@ function showPosition(position) {
 
 startWalkButton.addEventListener("click", function () {
   if (watchId === null) {
+    followPlayer = true;
+
     watchId = navigator.geolocation.watchPosition(showPosition);
+
     trackingStatus.textContent = "On";
   }
 });
@@ -214,6 +228,14 @@ stopWalkButton.addEventListener("click", function () {
 testLocationButton.addEventListener("click", function () {
   checkPlayerLocation(gridLatitude, gridLongitude);
 });
+
+//recentre button 
+recentreButton.addEventListener("click", function () {
+  map.setView(marker.getLatLng(), 16);
+  followPlayer = true;
+});
+
+
 /* 
 currently disabled - annoying on phone
 // Clicking anywhere on the map also acts as a fake location.
