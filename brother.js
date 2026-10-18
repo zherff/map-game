@@ -37,7 +37,7 @@ let followPlayer = false;
 
 const startWalkButton = document.getElementById("startWalkButton");
 const stopWalkButton = document.getElementById("stopWalkButton");
-const testLocationButton = document.getElementById("testLocationButton");
+//const testLocationButton = document.getElementById("testLocationButton");
 const resetButton = document.getElementById("resetButton");
 const squareCount = document.getElementById("squareCount");
 const trackingStatus = document.getElementById("trackingStatus");
@@ -225,9 +225,9 @@ stopWalkButton.addEventListener("click", function () {
 
 // Pretend the player is standing in the centre cell.
 // Useful while developing without physically walking there.
-testLocationButton.addEventListener("click", function () {
-  checkPlayerLocation(gridLatitude, gridLongitude);
-});
+//testLocationButton.addEventListener("click", function () {
+//  checkPlayerLocation(gridLatitude, gridLongitude);
+//});
 
 //recentre button 
 recentreButton.addEventListener("click", function () {
