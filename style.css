@@ -1,42 +1,144 @@
 body {
   background-color: black;
-  color:hotpink ;
+  color: hotpink;
   text-align: center;
+}
 
-  #map{
-    height: 400px;
-    width: 600px;
-    max-width: 95%;
-    margin: 0 auto;
-  
-}  
-  }
-  .hectrek-logo {
+
+/* ============================= */
+/* MAP */
+/* ============================= */
+
+#map {
+  height: 400px;
+  width: 600px;
+  max-width: 95%;
+  margin: 0 auto;
+}
+
+
+/* ============================= */
+/* HECTREK LOGO */
+/* ============================= */
+
+.hectrek-logo {
   display: block;
+
   width: 90%;
   max-width: 500px;
   height: auto;
-  margin: 20px auto;
-  }
 
-  .square-count {
+  margin: 20px auto;
+}
+
+
+/* ============================= */
+/* SQUARE COUNTER */
+/* ============================= */
+
+.square-count {
   font-size: 24px;
   font-weight: bold;
   font-family: "Trebuchet MS", sans-serif;
-  }
+}
 
-  .tracking-status {
-  font-size: 20px;
-  font-family:"Trebuchet MS", sans-serif;
-    }
 
-    .button-group {
+/* ============================= */
+/* HECTOR + TRACKING ROW */
+/* ============================= */
+
+.tracking-row {
+  position: relative;
+
+  width: 600px;
+  max-width: 95%;
+  min-height: 90px;
+
+  margin: 0 auto 20px;
+
   display: flex;
+  align-items: center;
   justify-content: center;
+}
+
+
+/* Hector's little home on the left */
+
+.hector-home {
+  position: absolute;
+
+  left: 0;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  width: 80px;
+}
+
+
+#hector {
+  display: block;
+
+  width: 80px;
+  height: auto;
+}
+
+
+/* Tracking: On / Off */
+
+.tracking-status {
+  margin: 0;
+
+  text-align: center;
+
+  font-size: 20px;
+  font-family: "Trebuchet MS", sans-serif;
+}
+
+
+/* Hector's achievement message */
+
+#hectorMessage {
+  display: none;
+
+  position: absolute;
+
+  left: 70px;
+  bottom: 60px;
+
+  width: 170px;
+
+  padding: 10px 14px;
+
+  background-color: black;
+  color: hotpink;
+
+  border: 2px solid hotpink;
+  border-radius: 10px;
+
+  font-family: "Trebuchet MS", sans-serif;
+  font-weight: bold;
+
+  z-index: 1001;
+}
+
+
+/* ============================= */
+/* BUTTON GROUPS */
+/* ============================= */
+
+.button-group {
+  display: flex;
+
+  justify-content: center;
+
   gap: 10px;
+
   flex-wrap: wrap;
+
   margin: 20px 0;
 }
+
 
 .button-group button {
   font-size: 16px;
@@ -53,45 +155,19 @@ body {
   cursor: pointer;
 }
 
+
+/* Mouse hover effect */
+
 .button-group button:hover {
   background-color: hotpink;
   color: black;
 }
 
+
+/* Disabled buttons, such as Finish boundary
+   before a boundary has been started */
+
 .button-group button:disabled {
   opacity: 0.4;
   cursor: default;
-}
-
-#hector {
-  position: fixed;
-  bottom: 180px;
-  left: 15px;
-
-  width: 80px;
-  height: auto;
-
-  z-index: 1000;
-}
-
-#hectorMessage {
-  display: none;
-
-  position: fixed;
-  bottom: 245px;
-  left: 95px;
-
-  max-width: 180px;
-  padding: 10px 14px;
-
-  background-color: hotpink;
-  color: black;
-
-  border: 3px solid black;
-  border-radius: 10px;
-
-  font-family: "Trebuchet MS", sans-serif;
-  font-weight: bold;
-
-  z-index: 1001;
 }

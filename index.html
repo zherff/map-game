@@ -1,62 +1,189 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>My map game </title>
-    <link rel="stylesheet" href="style.css">
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
-  </head>
 
-  <body>
-   <img
-      src="Glossy Blue and Purple HecTrek Logo.png"
-      alt="Hectrek"
-     class="hectrek-logo"
-    >   
-    <p class="square-count">
-      Squares collected:<span id="squareCount"> 0</span>
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <!-- Makes the page size properly on phones -->
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Hectrek</title>
+
+
+  <!-- Leaflet map styling -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+
+  <!-- Our own Hectrek styling -->
+  <link
+    rel="stylesheet"
+    href="style.css"
+  >
+
+</head>
+
+
+<body>
+
+
+  <!-- =====================================
+       HECTREK LOGO
+       ===================================== -->
+
+  <img
+    src="hectrek-logo.png"
+    alt="Hectrek"
+    class="hectrek-logo"
+  >
+
+
+
+  <!-- =====================================
+       SQUARE COUNTER
+       ===================================== -->
+
+  <p class="square-count">
+    Squares collected:
+    <span id="squareCount"></span>
+  </p>
+
+
+
+  <!-- =====================================
+       MAP
+       ===================================== -->
+
+  <div id="map"></div>
+
+
+
+  <!-- =====================================
+       HECTOR + TRACKING STATUS
+       ===================================== -->
+
+  <div class="tracking-row">
+
+
+    <!-- Hector lives on the left -->
+
+    <div class="hector-home">
+
+      <img
+        src="hector-curled.png"
+        alt="Hector the hedgehog"
+        id="hector"
+      >
+
+      <!-- Hidden until Hector has something to say -->
+
+      <div id="hectorMessage"></div>
+
+    </div>
+
+
+    <!-- Tracking status stays centred -->
+
+    <p class="tracking-status">
+      Tracking:
+      <span id="trackingStatus">Off</span>
     </p>
 
-    <div id="map"></div>
 
-  <p class="tracking-status">
-         Tracking: <span id="trackingStatus">Off</span>
-      </p>
- 
-     <!-- <button id="testLocationButton">Test location</button>
-     -->
-     <div class="button-group">
-  <button id="startWalkButton">Start walk</button>
-  <button id="stopWalkButton">Stop walk</button>
-  <button id="recentreButton">Recentre</button>
-</div>
+  </div>
 
-<div class="button-group">
-  <button id="drawBoundaryButton">Draw boundary</button>
-  <button id="finishBoundaryButton">Finish boundary</button>
-</div>
 
-<div class="button-group reset-group">
-  <button id="resetButton">Reset progress</button>
-  <button id="resetAreasButton">Delete all areas</button>
-</div>
 
- 
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
- 
+  <!-- =====================================
+       WALKING CONTROLS
+       ===================================== -->
 
-<div id="hectorMessage"></div>
+  <div class="button-group">
 
-<img
-  src="hector-curled.png"
-  alt="Hector the hedgehog"
-  id="hector"
->
+    <button id="startWalkButton">
+      Start walk
+    </button>
 
-    <script src="script.js"></script>
+    <button id="stopWalkButton">
+      Stop walk
+    </button>
 
-  </body>
+    <button id="recentreButton">
+      Recentre
+    </button>
 
-  </html>
+  </div>
+
+
+
+  <!-- =====================================
+       AREA / BOUNDARY CONTROLS
+       ===================================== -->
+
+  <div class="button-group">
+
+    <button id="drawBoundaryButton">
+      Draw boundary
+    </button>
+
+    <button
+      id="finishBoundaryButton"
+      disabled
+    >
+      Finish boundary
+    </button>
+
+  </div>
+
+
+
+  <!-- =====================================
+       RESET CONTROLS
+       ===================================== -->
+
+  <div class="button-group">
+
+    <button id="resetButton">
+      Reset progress
+    </button>
+
+    <button id="resetAreasButton">
+      Delete all areas
+    </button>
+
+  </div>
+
+
+
+  <!-- =====================================
+       JAVASCRIPT
+       ===================================== -->
+
+  <!-- Leaflet must load before our script,
+       because script.js uses L.map(),
+       L.rectangle(), L.marker(), etc. -->
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  ></script>
+
+
+  <!-- Keep this LAST.
+       This means all the HTML above,
+       including Hector, already exists
+       before our JavaScript runs. -->
+
+  <script src="script.js"></script>
+
+
+</body>
+
+</html>
