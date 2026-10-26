@@ -1,11 +1,13 @@
 body {
   background-color: black;
   color:hotpink ;
+  text-align: center;
 
   #map{
     height: 400px;
     width: 600px;
-    
+    max-width: 95%;
+    margin: 0 auto;
   
 }  
   }
@@ -21,4 +23,75 @@ body {
   font-size: 24px;
   font-weight: bold;
   font-family: "Trebuchet MS", sans-serif;
+  }
+
+  .tracking-status {
+  font-size: 20px;
+  font-family:"Trebuchet MS", sans-serif;
+    }
+
+    .button-group {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+
+.button-group button {
+  font-size: 16px;
+  font-weight: bold;
+
+  padding: 10px 16px;
+
+  border: 2px solid hotpink;
+  border-radius: 8px;
+
+  background-color: black;
+  color: hotpink;
+
+  cursor: pointer;
+}
+
+.button-group button:hover {
+  background-color: hotpink;
+  color: black;
+}
+
+.button-group button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+#hector {
+  position: fixed;
+  bottom: 180px;
+  left: 15px;
+
+  width: 80px;
+  height: auto;
+
+  z-index: 1000;
+}
+
+#hectorMessage {
+  display: none;
+
+  position: fixed;
+  bottom: 245px;
+  left: 95px;
+
+  max-width: 180px;
+  padding: 10px 14px;
+
+  background-color: hotpink;
+  color: black;
+
+  border: 3px solid black;
+  border-radius: 10px;
+
+  font-family: "Trebuchet MS", sans-serif;
+  font-weight: bold;
+
+  z-index: 1001;
 }
