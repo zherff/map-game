@@ -59,6 +59,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  z-index:2000
 }
 
 
@@ -98,28 +100,29 @@ body {
 
 /* Hector's achievement message */
 
+
 #hectorMessage {
   display: none;
 
   position: absolute;
-
-  left: 70px;
-  bottom: 60px;
+  left: 75px;
+  bottom: 65px;
 
   width: 170px;
+  padding: 12px 16px;
 
-  padding: 10px 14px;
+  background-color: hotpink;
+  color: black;
 
-  background-color: black;
-  color: hotpink;
-
-  border: 2px solid hotpink;
-  border-radius: 10px;
+  border: 3px solid black;
+  border-radius: 20px;
 
   font-family: "Trebuchet MS", sans-serif;
   font-weight: bold;
 
-  z-index: 1001;
+  box-shadow: 4px 4px 0 rebeccapurple;
+
+  z-index: 2001;
 }
 
 

@@ -1,17 +1,22 @@
 // ========================================
 // HECTREK
-// Polygon-first version
+// British National Grid version
 // ========================================
 //
-// New workflow:
+// The important change:
 //
-// 1. Press "Draw boundary"
-// 2. Click points around the town / area
-// 3. Press "Finish boundary"
-// 4. Hectrek creates 100m × 100m cells inside it
-// 5. The area and its progress are saved
+// Hectrek now does its grid maths using
+// British National Grid coordinates.
 //
-// You can then draw another separate area.
+// British National Grid uses metres.
+//
+// Therefore every playable cell can simply be:
+//
+// 100 metres east-west
+// ×
+// 100 metres north-south
+//
+// All Hectrek areas share the SAME grid.
 // ========================================
 
 
@@ -20,77 +25,149 @@
 // 1. GAME SETTINGS
 // ========================================
 
-// Each square is 100 metres × 100 metres.
-//
-// 100m × 100m = 10,000 square metres = 1 hectare.
 const cellSize = 100;
 
 
-// Approximate number of metres in one degree
-// of latitude.
+// We use a new storage name because these
+// cell IDs are completely different from the
+// previous latitude-based grid.
 //
-// This is accurate enough for our current
-// local-scale Hectrek prototype.
-const metresPerDegree = 111320;
-
-
-// Height of one hectare cell in degrees latitude.
-const latitudeStep =
-  cellSize / metresPerDegree;
-
-
-// We use a NEW storage name because the structure
-// of our areas has completely changed.
-//
-// This also means your older experimental data
-// is left untouched.
+// Your old experimental data is not deleted.
 const areasStorageKey =
-  "hectrekPolygonAreas";
+  "hectrekBngAreas";
 
 
 
 // ========================================
-// 2. LOAD SAVED AREAS
+// 2. BRITISH NATIONAL GRID SETUP
 // ========================================
 //
-// Each area now looks roughly like:
+// GPS and Leaflet use longitude / latitude.
+//
+// British National Grid uses:
+//     Easting
+//     Northing
+//
+// Proj4 converts between them.
+//
+// This definition uses an approximate
+// transformation between OSGB36 and WGS84.
+// ========================================
+
+proj4.defs(
+  "EPSG:27700",
+  "+proj=tmerc " +
+  "+lat_0=49 " +
+  "+lon_0=-2 " +
+  "+k=0.9996012717 " +
+  "+x_0=400000 " +
+  "+y_0=-100000 " +
+  "+ellps=airy " +
+  "+towgs84=446.448,-125.157,542.06,0.15,0.247,0.842,-20.489 " +
+  "+units=m " +
+  "+no_defs"
+);
+
+
+
+// ========================================
+// 3. COORDINATE CONVERSION FUNCTIONS
+// ========================================
+
+
+// Convert normal map coordinates into
+// British National Grid metres.
+//
+// Notice that Proj4 expects:
+//
+// [longitude, latitude]
+//
+// rather than:
+//
+// [latitude, longitude]
+function toBritishGrid(
+  latitude,
+  longitude
+) {
+
+  return proj4(
+    "EPSG:4326",
+    "EPSG:27700",
+    [longitude, latitude]
+  );
+}
+
+
+
+// Convert British National Grid metres back
+// into normal longitude / latitude.
+function fromBritishGrid(
+  easting,
+  northing
+) {
+
+  const result =
+    proj4(
+      "EPSG:27700",
+      "EPSG:4326",
+      [easting, northing]
+    );
+
+
+  return [
+    result[1],
+    result[0]
+  ];
+}
+
+
+
+// ========================================
+// 4. LOAD SAVED AREAS
+// ========================================
+//
+// Each area looks roughly like:
 //
 // {
-//   id: "123456789",
+//   id: "...",
+//
 //   boundaryPoints: [
-//     [latitude, longitude],
 //     [latitude, longitude],
 //     ...
 //   ],
 //
 //   cellIds: [
-//     "160000,-1234",
-//     "160000,-1235",
-//     ...
+//     "4602,4541",
+//     "4603,4541"
 //   ],
 //
-//   collectedCellIds: [
-//     "160000,-1234"
-//   ]
+//   collectedCellIds: []
 // }
 //
-// The important difference is:
-//
-// THE POLYGON defines the area.
-//
-// We no longer store a centre point and
-// automatically create a 27 × 27 square.
+// The cell ID represents a particular
+// 100m square on the British National Grid.
 // ========================================
 
 let areas = [];
 
-const savedAreas =
-  localStorage.getItem(areasStorageKey);
 
-if (savedAreas !== null) {
+const savedAreas =
+  localStorage.getItem(
+    areasStorageKey
+  );
+
+
+if (
+  savedAreas !== null
+) {
 
   try {
-    areas = JSON.parse(savedAreas);
+
+    areas =
+      JSON.parse(
+        savedAreas
+      );
+
   } catch (error) {
 
     console.log(
@@ -105,120 +182,109 @@ if (savedAreas !== null) {
 
 
 // ========================================
-// 3. FIND OUR HTML ELEMENTS
+// 5. FIND HTML ELEMENTS
 // ========================================
 
 const startWalkButton =
-  document.getElementById("startWalkButton");
+  document.getElementById(
+    "startWalkButton"
+  );
 
 const stopWalkButton =
-  document.getElementById("stopWalkButton");
+  document.getElementById(
+    "stopWalkButton"
+  );
 
 const recentreButton =
-  document.getElementById("recentreButton");
+  document.getElementById(
+    "recentreButton"
+  );
 
 const drawBoundaryButton =
-  document.getElementById("drawBoundaryButton");
+  document.getElementById(
+    "drawBoundaryButton"
+  );
 
 const finishBoundaryButton =
-  document.getElementById("finishBoundaryButton");
+  document.getElementById(
+    "finishBoundaryButton"
+  );
 
 const resetButton =
-  document.getElementById("resetButton");
-
-const squareCount =
-  document.getElementById("squareCount");
-
-const trackingStatus =
-  document.getElementById("trackingStatus");
+  document.getElementById(
+    "resetButton"
+  );
 
 const resetAreasButton =
-  document.getElementById("resetAreasButton");
+  document.getElementById(
+    "resetAreasButton"
+  );
 
+const squareCount =
+  document.getElementById(
+    "squareCount"
+  );
+
+const trackingStatus =
+  document.getElementById(
+    "trackingStatus"
+  );
 
 const hector =
-  document.getElementById("hector");
+  document.getElementById(
+    "hector"
+  );
 
 const hectorMessage =
-  document.getElementById("hectorMessage");
-
-// This was the old "Add area" button.
-//
-// We don't need it anymore because drawing
-// the polygon now creates the area.
-//
-// This hides it if it is still in index.html.
-// You can delete the button from HTML later.
-const oldChooseAreaButton =
-  document.getElementById("chooseAreaButton");
-
-if (oldChooseAreaButton !== null) {
-  oldChooseAreaButton.style.display = "none";
-}
+  document.getElementById(
+    "hectorMessage"
+  );
 
 
 
 // ========================================
-// 4. APP STATE
+// 6. APP STATE
 // ========================================
 
-// ID returned by watchPosition().
-//
-// null means continuous GPS tracking is off.
 let watchId = null;
 
-
-// Latest real GPS coordinates.
 let currentLatitude = null;
 let currentLongitude = null;
 
-
-// Should the map automatically follow
-// the player?
 let followPlayer = false;
 
-
-// Used so pressing Start walk zooms to the
-// player's position on the first GPS update.
 let centreOnFirstPosition = false;
 
-
-// Are map clicks currently being used to
-// draw a new polygon?
 let drawingBoundary = false;
 
-
-// Temporary points for the polygon currently
-// being drawn.
-//
-// These do NOT become a saved area until
-// Finish boundary is pressed.
 let boundaryPoints = [];
 
 
-// Every visible playable hectare rectangle.
-//
-// GPS collection checks these.
+// Every visible hectare rectangle.
 let mapCells = [];
 
 
-// Leaflet polygon layers belonging to
-// permanently saved areas.
+// This lets us find a hectare immediately
+// from its cell ID.
+//
+// Much faster than checking every rectangle.
+let cellLookup =
+  new Map();
+
+
+// Saved polygon outlines.
 let areaBoundaryLayers = [];
 
 
 
 // ========================================
-// 5. CREATE THE MAP
+// 7. CREATE MAP
 // ========================================
 
-const map = L.map("map");
+const map =
+  L.map("map");
 
 
-// Start with a broad view.
-//
-// If saved Hectrek areas exist, we'll zoom
-// to them later.
 map.setView(
   [54.5, -3],
   6
@@ -229,29 +295,21 @@ L.tileLayer(
   "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
   {
     maxZoom: 19,
+
     attribution:
       "&copy; OpenStreetMap contributors"
   }
 ).addTo(map);
 
 
-// The marker represents the player's REAL
-// GPS location.
-//
-// Therefore we don't create it until GPS
-// actually gives us a position.
 let marker = null;
 
 
 
 // ========================================
-// 6. TEMPORARY POLYGON BEING DRAWN
+// 8. TEMPORARY DRAWING POLYGON
 // ========================================
 
-// This polygon shows the boundary while
-// the user is drawing it.
-//
-// It is separate from saved area polygons.
 const boundaryPolygon =
   L.polygon(
     [],
@@ -262,14 +320,13 @@ const boundaryPolygon =
   ).addTo(map);
 
 
-// Finish starts disabled because there is
-// nothing to finish yet.
-finishBoundaryButton.disabled = true;
+finishBoundaryButton.disabled =
+  true;
 
 
 
 // ========================================
-// 7. SAVE AREAS
+// 9. SAVE AREAS
 // ========================================
 
 function saveAreas() {
@@ -283,122 +340,116 @@ function saveAreas() {
 
 
 // ========================================
-// 8. GLOBAL HECTARE GRID
+// 10. CELL IDS
 // ========================================
 //
-// This is an important change.
+// British National Grid coordinates might be:
 //
-// Previously every area generated its own grid
-// from its own centre.
+// Easting:  460250
+// Northing: 454150
 //
-// That meant two grids could overlap but have
-// slightly different square positions.
+// Dividing by 100 tells us which
+// 100m × 100m square we're in.
 //
-// Now every hectare belongs to ONE shared
-// invisible global grid.
+// Example:
 //
-// This means the same location always produces
-// the same cell ID.
+// 460250 / 100 = cell column 4602
+// 454150 / 100 = cell row    4541
 //
-// Therefore two areas cannot accidentally create
-// two different hectare cells over the same place.
+// So the cell ID becomes:
+//
+// "4602,4541"
 // ========================================
 
-
-// Find the global grid row containing a latitude.
-function getRowForLatitude(latitude) {
-
-  return Math.floor(
-    (latitude + 90) / latitudeStep
-  );
-}
-
-
-
-// Find the centre latitude of a grid row.
-function getLatitudeForRow(row) {
-
-  return (
-    -90 +
-    (row + 0.5) * latitudeStep
-  );
-}
-
-
-
-// Longitude distances change depending on
-// latitude.
-//
-// This calculates how many degrees longitude
-// approximately equal 100 metres at a
-// particular latitude.
-function getLongitudeStep(latitude) {
-
-  return (
-    cellSize /
-    (
-      metresPerDegree *
-      Math.cos(
-        latitude * Math.PI / 180
-      )
-    )
-  );
-}
-
-
-
-// Find the global column containing a longitude
-// for a particular row.
-function getColumnForLongitude(
-  longitude,
-  latitude
+function getCellId(
+  easting,
+  northing
 ) {
 
-  const longitudeStep =
-    getLongitudeStep(latitude);
+  const column =
+    Math.floor(
+      easting / cellSize
+    );
 
-  return Math.floor(
-    (longitude + 180) /
-    longitudeStep
-  );
-}
+  const row =
+    Math.floor(
+      northing / cellSize
+    );
 
-
-
-// Find the centre longitude of a cell.
-function getLongitudeForColumn(
-  column,
-  latitude
-) {
-
-  const longitudeStep =
-    getLongitudeStep(latitude);
 
   return (
-    -180 +
-    (column + 0.5) *
-    longitudeStep
+    column +
+    "," +
+    row
   );
 }
 
 
 
 // ========================================
-// 9. POINT-IN-POLYGON TEST
-// ========================================
-//
-// This answers:
-//
-// "Is this particular point inside
-// this polygon?"
-//
-// We use the centre point of each hectare.
+// 11. GET CELL GRID COORDINATES
 // ========================================
 
-function pointIsInsideBoundary(
-  latitude,
-  longitude,
-  points
+function getCellGridCoordinates(
+  cellId
+) {
+
+  const parts =
+    cellId.split(",");
+
+
+  const column =
+    Number(parts[0]);
+
+  const row =
+    Number(parts[1]);
+
+
+  return {
+    column: column,
+    row: row,
+
+    west:
+      column * cellSize,
+
+    east:
+      column * cellSize +
+      cellSize,
+
+    south:
+      row * cellSize,
+
+    north:
+      row * cellSize +
+      cellSize,
+
+    centreEasting:
+      column * cellSize +
+      cellSize / 2,
+
+    centreNorthing:
+      row * cellSize +
+      cellSize / 2
+  };
+}
+
+
+
+// ========================================
+// 12. POINT INSIDE POLYGON
+// ========================================
+//
+// This version works in British National
+// Grid metres.
+//
+// x = easting
+// y = northing
+// ========================================
+
+function pointIsInsidePolygon(
+  x,
+  y,
+  polygonPoints
 ) {
 
   let inside = false;
@@ -406,46 +457,51 @@ function pointIsInsideBoundary(
 
   for (
     let i = 0,
-        j = points.length - 1;
+        j =
+          polygonPoints.length - 1;
 
-    i < points.length;
+    i < polygonPoints.length;
 
     j = i++
   ) {
 
-    const latitudeI =
-      points[i][0];
+    const xI =
+      polygonPoints[i][0];
 
-    const longitudeI =
-      points[i][1];
+    const yI =
+      polygonPoints[i][1];
 
-    const latitudeJ =
-      points[j][0];
+    const xJ =
+      polygonPoints[j][0];
 
-    const longitudeJ =
-      points[j][1];
+    const yJ =
+      polygonPoints[j][1];
 
 
     const crossesEdge =
       (
-        (longitudeI > longitude) !==
-        (longitudeJ > longitude)
+        (yI > y) !==
+        (yJ > y)
       )
       &&
       (
-        latitude <
+        x <
         (
-          (latitudeJ - latitudeI) *
-          (longitude - longitudeI) /
-          (longitudeJ - longitudeI)
+          (xJ - xI) *
+          (y - yI) /
+          (yJ - yI)
           +
-          latitudeI
+          xI
         )
       );
 
 
-    if (crossesEdge) {
-      inside = !inside;
+    if (
+      crossesEdge
+    ) {
+
+      inside =
+        !inside;
     }
   }
 
@@ -456,138 +512,176 @@ function pointIsInsideBoundary(
 
 
 // ========================================
-// 10. FIND WHICH HECTARES BELONG
-//     INSIDE A POLYGON
+// 13. CREATE CELLS FOR A BOUNDARY
 // ========================================
 
-function createCellIdsForBoundary(points) {
+function createCellIdsForBoundary(
+  points
+) {
 
-  // Find the rectangle surrounding the polygon.
-  //
-  // We only need to test hectare cells inside
-  // this general region instead of checking
-  // the entire planet.
+  // Convert every polygon point from
+  // latitude / longitude into metre-based
+  // British National Grid coordinates.
 
-  const latitudes =
-    points.map(function (point) {
-      return point[0];
-    });
+  const gridBoundary =
+    points.map(
+      function (point) {
 
-  const longitudes =
-    points.map(function (point) {
-      return point[1];
-    });
+        return toBritishGrid(
+          point[0],
+          point[1]
+        );
+      }
+    );
 
 
-  const minimumLatitude =
-    Math.min(...latitudes);
+  const eastings =
+    gridBoundary.map(
+      function (point) {
+        return point[0];
+      }
+    );
 
-  const maximumLatitude =
-    Math.max(...latitudes);
 
-  const minimumLongitude =
-    Math.min(...longitudes);
+  const northings =
+    gridBoundary.map(
+      function (point) {
+        return point[1];
+      }
+    );
 
-  const maximumLongitude =
-    Math.max(...longitudes);
+
+  const minimumEasting =
+    Math.min(...eastings);
+
+  const maximumEasting =
+    Math.max(...eastings);
+
+  const minimumNorthing =
+    Math.min(...northings);
+
+  const maximumNorthing =
+    Math.max(...northings);
+
+
+  // Work out which grid columns and rows
+  // cover the polygon.
+
+  const firstColumn =
+    Math.floor(
+      minimumEasting /
+      cellSize
+    );
+
+
+  const lastColumn =
+    Math.floor(
+      maximumEasting /
+      cellSize
+    );
 
 
   const firstRow =
-    getRowForLatitude(minimumLatitude) - 1;
+    Math.floor(
+      minimumNorthing /
+      cellSize
+    );
+
 
   const lastRow =
-    getRowForLatitude(maximumLatitude) + 1;
+    Math.floor(
+      maximumNorthing /
+      cellSize
+    );
 
 
-  // These are hectare cells already belonging
-  // to another Hectrek area.
-  //
-  // We will NOT create duplicates.
+  // Make a set containing every hectare
+  // already owned by another area.
+
   const occupiedCellIds =
     new Set();
 
 
-  areas.forEach(function (area) {
+  areas.forEach(
+    function (area) {
 
-    area.cellIds.forEach(function (cellId) {
+      area.cellIds.forEach(
+        function (cellId) {
 
-      occupiedCellIds.add(cellId);
+          occupiedCellIds.add(
+            cellId
+          );
 
-    });
-  });
+        }
+      );
+    }
+  );
 
 
   const newCellIds = [];
 
 
-  // Work through every possible grid row
-  // crossing the polygon.
+  // Check every possible 100m cell within
+  // the rectangle surrounding our polygon.
+
   for (
-    let row = firstRow;
-    row <= lastRow;
-    row++
+    let column = firstColumn;
+    column <= lastColumn;
+    column++
   ) {
 
-    const cellLatitude =
-      getLatitudeForRow(row);
-
-
-    const longitudeStep =
-      getLongitudeStep(cellLatitude);
-
-
-    const firstColumn =
-      Math.floor(
-        (minimumLongitude + 180) /
-        longitudeStep
-      ) - 1;
-
-
-    const lastColumn =
-      Math.floor(
-        (maximumLongitude + 180) /
-        longitudeStep
-      ) + 1;
-
-
-    // Now test every possible cell in this row.
     for (
-      let column = firstColumn;
-      column <= lastColumn;
-      column++
+      let row = firstRow;
+      row <= lastRow;
+      row++
     ) {
 
-      const cellLongitude =
-        getLongitudeForColumn(
-          column,
-          cellLatitude
-        );
-
-
       const cellId =
-        row + "," + column;
+        column +
+        "," +
+        row;
 
 
-      // If another saved Hectrek area already
-      // owns this hectare, skip it.
+      // Don't create the same hectare twice.
+
       if (
-        occupiedCellIds.has(cellId)
+        occupiedCellIds.has(
+          cellId
+        )
       ) {
+
         continue;
       }
 
 
-      // Only include the hectare if its CENTRE
-      // is inside the polygon.
+      // Find the exact centre of this hectare
+      // in British National Grid metres.
+
+      const centreEasting =
+        column * cellSize +
+        cellSize / 2;
+
+
+      const centreNorthing =
+        row * cellSize +
+        cellSize / 2;
+
+
+      // If the centre is inside the drawn
+      // polygon, this hectare belongs to
+      // the new Hectrek area.
+
       if (
-        pointIsInsideBoundary(
-          cellLatitude,
-          cellLongitude,
-          points
+        pointIsInsidePolygon(
+          centreEasting,
+          centreNorthing,
+          gridBoundary
         )
       ) {
 
-        newCellIds.push(cellId);
+        newCellIds.push(
+          cellId
+        );
       }
     }
   }
@@ -599,96 +693,88 @@ function createCellIdsForBoundary(points) {
 
 
 // ========================================
-// 11. TURN A CELL ID BACK INTO
-//     GEOGRAPHICAL BOUNDS
-// ========================================
-//
-// Example cell ID:
-//
-// "160000,-1234"
-//
-// From that we can work out exactly where
-// the Leaflet rectangle belongs.
+// 14. CONVERT A HECTARE INTO MAP CORNERS
 // ========================================
 
-function getCellBounds(cellId) {
+function getCellMapCorners(
+  cellId
+) {
 
-  const parts =
-    cellId.split(",");
-
-
-  const row =
-    Number(parts[0]);
-
-  const column =
-    Number(parts[1]);
-
-
-  const latitude =
-    getLatitudeForRow(row);
-
-
-  const longitudeStep =
-    getLongitudeStep(latitude);
-
-
-  const longitude =
-    getLongitudeForColumn(
-      column,
-      latitude
+  const grid =
+    getCellGridCoordinates(
+      cellId
     );
 
 
-  const halfLatitudeStep =
-    latitudeStep / 2;
+  // These four corners are genuinely aligned
+  // on the same British National Grid.
 
-  const halfLongitudeStep =
-    longitudeStep / 2;
+  const southWest =
+    fromBritishGrid(
+      grid.west,
+      grid.south
+    );
 
 
-  return {
-    latitude: latitude,
-    longitude: longitude,
+  const northWest =
+    fromBritishGrid(
+      grid.west,
+      grid.north
+    );
 
-    north:
-      latitude + halfLatitudeStep,
 
-    south:
-      latitude - halfLatitudeStep,
+  const northEast =
+    fromBritishGrid(
+      grid.east,
+      grid.north
+    );
 
-    east:
-      longitude + halfLongitudeStep,
 
-    west:
-      longitude - halfLongitudeStep
-  };
+  const southEast =
+    fromBritishGrid(
+      grid.east,
+      grid.south
+    );
+
+
+  return [
+    southWest,
+    northWest,
+    northEast,
+    southEast
+  ];
 }
 
 
 
 // ========================================
-// 12. REMOVE CURRENT MAP GRID LAYERS
+// 15. REMOVE MAP LAYERS
 // ========================================
 
 function removeMapLayers() {
 
-  // Remove all hectare rectangles.
-  mapCells.forEach(function (cell) {
+  mapCells.forEach(
+    function (cell) {
 
-    map.removeLayer(
-      cell.rectangle
-    );
-  });
+      map.removeLayer(
+        cell.rectangle
+      );
+
+    }
+  );
 
 
   mapCells = [];
 
+  cellLookup.clear();
 
-  // Remove the saved polygon outlines.
+
   areaBoundaryLayers.forEach(
     function (polygon) {
 
-      map.removeLayer(polygon);
+      map.removeLayer(
+        polygon
+      );
 
     }
   );
@@ -700,7 +786,7 @@ function removeMapLayers() {
 
 
 // ========================================
-// 13. DRAW ALL SAVED AREAS
+// 16. DRAW ALL SAVED AREAS
 // ========================================
 
 function renderAllAreas() {
@@ -708,80 +794,92 @@ function renderAllAreas() {
   removeMapLayers();
 
 
-  areas.forEach(function (area) {
+  areas.forEach(
+    function (area) {
 
-    // ------------------------------
-    // Draw this area's hectare cells
-    // ------------------------------
+      // ----------------------------
+      // Draw hectare cells
+      // ----------------------------
 
-    area.cellIds.forEach(
-      function (cellId) {
+      area.cellIds.forEach(
+        function (cellId) {
 
-        const bounds =
-          getCellBounds(cellId);
-
-
-        const rectangle =
-          L.rectangle([
-            [
-              bounds.south,
-              bounds.west
-            ],
-            [
-              bounds.north,
-              bounds.east
-            ]
-          ]).addTo(map);
+          const corners =
+            getCellMapCorners(
+              cellId
+            );
 
 
-        // Restore collected hectares.
-        if (
-          area.collectedCellIds.includes(
-            cellId
-          )
-        ) {
+          // We use L.polygon rather than
+          // L.rectangle because the corners
+          // have been converted from the
+          // British National Grid projection.
 
-          rectangle.setStyle({
-            color: "rebeccapurple",
-            fillColor: "rebeccapurple"
-          });
+          const rectangle =
+            L.polygon(
+              corners
+            ).addTo(map);
+
+
+          if (
+            area.collectedCellIds
+              .includes(cellId)
+          ) {
+
+            rectangle.setStyle({
+              color:
+                "rebeccapurple",
+
+              fillColor:
+                "rebeccapurple"
+            });
+          }
+
+
+          const cell = {
+            areaId:
+              area.id,
+
+            cellId:
+              cellId,
+
+            rectangle:
+              rectangle
+          };
+
+
+          mapCells.push(
+            cell
+          );
+
+
+          cellLookup.set(
+            cellId,
+            cell
+          );
         }
+      );
 
 
-        mapCells.push({
-          areaId: area.id,
-          cellId: cellId,
+      // ----------------------------
+      // Draw original boundary
+      // ----------------------------
 
-          latitude:
-            bounds.latitude,
-
-          longitude:
-            bounds.longitude,
-
-          rectangle: rectangle
-        });
-      }
-    );
+      const polygon =
+        L.polygon(
+          area.boundaryPoints,
+          {
+            fillOpacity: 0,
+            weight: 2
+          }
+        ).addTo(map);
 
 
-    // ------------------------------
-    // Draw the original town boundary
-    // ------------------------------
-
-    const polygon =
-      L.polygon(
-        area.boundaryPoints,
-        {
-          fillOpacity: 0,
-          weight: 2
-        }
-      ).addTo(map);
-
-
-    areaBoundaryLayers.push(
-      polygon
-    );
-  });
+      areaBoundaryLayers.push(
+        polygon
+      );
+    }
+  );
 
 
   updateSquareCount();
@@ -790,57 +888,164 @@ function renderAllAreas() {
 
 
 // ========================================
-// 14. UPDATE COLLECTED COUNTER
+// 17. SQUARE COUNTER
 // ========================================
 
-function updateSquareCount() {
+function getSquareTotals() {
 
   let collectedTotal = 0;
   let squareTotal = 0;
 
 
-  areas.forEach(function (area) {
+  areas.forEach(
+    function (area) {
 
-    collectedTotal +=
-      area.collectedCellIds.length;
+      collectedTotal +=
+        area.collectedCellIds.length;
 
-    squareTotal +=
-      area.cellIds.length;
-  });
+      squareTotal +=
+        area.cellIds.length;
+    }
+  );
+
+
+  return {
+    collected:
+      collectedTotal,
+
+    total:
+      squareTotal
+  };
+}
+
+
+
+function updateSquareCount() {
+
+  const totals =
+    getSquareTotals();
 
 
   squareCount.textContent =
-    collectedTotal +
+    totals.collected +
     " / " +
-    squareTotal;
-  
-    if (
-  squareTotal > 0 &&
-  collectedTotal === Math.ceil(squareTotal / 2)
-) {
-  wakeHector("Halfway there! 50% explored!");
-}
+    totals.total;
 }
 
 
 
 // ========================================
-// 15. START DRAWING A NEW AREA
+// 18. HECTOR
+// ========================================
+
+function wakeHector(
+  message
+) {
+
+  if (
+    hector === null ||
+    hectorMessage === null
+  ) {
+
+    return;
+  }
+
+
+  // Play uncurl animation.
+
+  hector.src =
+    "hector_uncurl_cheer.webp";
+
+
+  // Then show awake Hector and message.
+
+  setTimeout(
+    function () {
+
+      hector.src =
+        "hector_cheer_fist.png";
+
+
+      hectorMessage.textContent =
+        message;
+
+
+      hectorMessage.style.display =
+        "block";
+
+    },
+    2000
+  );
+
+
+  // Curl back up later.
+
+  setTimeout(
+    function () {
+
+      hectorMessage.style.display =
+        "none";
+
+
+      hector.src =
+        "hector-curled.png";
+
+    },
+    6000
+  );
+}
+
+
+
+// ========================================
+// 19. ACHIEVEMENTS
+// ========================================
+
+function checkAchievements() {
+
+  const totals =
+    getSquareTotals();
+
+
+  if (
+    totals.total > 0 &&
+    totals.collected ===
+      Math.ceil(
+        totals.total / 2
+      )
+  ) {
+
+    wakeHector(
+      "Halfway there! 50% explored!"
+    );
+  }
+}
+
+
+
+// ========================================
+// 20. DRAW / CANCEL BOUNDARY
 // ========================================
 
 drawBoundaryButton.addEventListener(
   "click",
   function () {
 
-    // If we're already drawing,
-    // pressing the button again CANCELS it.
-    if (drawingBoundary === true) {
+    // Already drawing?
+    //
+    // Pressing again means CANCEL.
+
+    if (
+      drawingBoundary === true
+    ) {
 
       drawingBoundary = false;
 
       boundaryPoints = [];
 
-      boundaryPolygon.setLatLngs([]);
+      boundaryPolygon.setLatLngs(
+        []
+      );
 
       drawBoundaryButton.textContent =
         "Draw boundary";
@@ -849,20 +1054,27 @@ drawBoundaryButton.addEventListener(
         true;
     }
 
-    // Otherwise, start drawing a new boundary.
+
+    // Otherwise start drawing.
+
     else {
 
       drawingBoundary = true;
 
       boundaryPoints = [];
 
-      boundaryPolygon.setLatLngs([]);
+      boundaryPolygon.setLatLngs(
+        []
+      );
 
       drawBoundaryButton.textContent =
         "Cancel drawing";
 
+      // Finish stays disabled until the user
+      // has created at least 3 points.
+
       finishBoundaryButton.disabled =
-        false;
+        true;
 
       followPlayer = false;
     }
@@ -872,17 +1084,13 @@ drawBoundaryButton.addEventListener(
 
 
 // ========================================
-// 16. ADD POLYGON POINTS
+// 21. ADD BOUNDARY POINTS
 // ========================================
 
 map.on(
   "click",
   function (event) {
 
-    // Ordinary map clicks do nothing.
-    //
-    // They only become polygon points after
-    // Draw boundary has been pressed.
     if (
       drawingBoundary === true
     ) {
@@ -903,6 +1111,13 @@ map.on(
       boundaryPolygon.setLatLngs(
         boundaryPoints
       );
+
+
+      // Three points are the minimum
+      // required to make a polygon.
+
+      finishBoundaryButton.disabled =
+        boundaryPoints.length < 3;
     }
   }
 );
@@ -910,41 +1125,31 @@ map.on(
 
 
 // ========================================
-// 17. FINISH THE POLYGON
-//     AND CREATE THE GRID
+// 22. FINISH BOUNDARY
 // ========================================
 
 finishBoundaryButton.addEventListener(
   "click",
   function () {
 
-    // A polygon needs at least three points.
     if (
       boundaryPoints.length < 3
     ) {
-
-      console.log(
-        "A boundary needs at least 3 points."
-      );
 
       return;
     }
 
 
-    drawingBoundary = false;
-
-
-    // Work out exactly which hectare cells
-    // belong inside the polygon.
     const newCellIds =
       createCellIdsForBoundary(
         boundaryPoints
       );
 
 
-    // If every hectare inside this polygon
-    // already belongs to another area,
-    // don't save an empty area.
+    // If the entire polygon overlaps cells
+    // that already belong to other areas,
+    // don't create an empty area.
+
     if (
       newCellIds.length === 0
     ) {
@@ -953,6 +1158,8 @@ finishBoundaryButton.addEventListener(
         "This boundary contains no new hectare cells."
       );
 
+
+      drawingBoundary = false;
 
       boundaryPoints = [];
 
@@ -970,13 +1177,11 @@ finishBoundaryButton.addEventListener(
     }
 
 
-    // Create the new permanent Hectrek area.
     const newArea = {
 
       id:
         Date.now().toString(),
 
-      // Make a copy of the points.
       boundaryPoints:
         boundaryPoints.map(
           function (point) {
@@ -996,20 +1201,21 @@ finishBoundaryButton.addEventListener(
     };
 
 
-    // Add it to our saved areas.
-    areas.push(newArea);
+    areas.push(
+      newArea
+    );
 
 
     saveAreas();
 
 
-    // Clear the temporary drawing.
+    drawingBoundary = false;
+
     boundaryPoints = [];
 
     boundaryPolygon.setLatLngs(
       []
     );
-
 
     drawBoundaryButton.textContent =
       "Draw boundary";
@@ -1018,7 +1224,6 @@ finishBoundaryButton.addEventListener(
       true;
 
 
-    // Rebuild everything from the saved data.
     renderAllAreas();
 
 
@@ -1033,7 +1238,17 @@ finishBoundaryButton.addEventListener(
 
 
 // ========================================
-// 18. CHECK THE PLAYER'S LOCATION
+// 23. CHECK PLAYER LOCATION
+// ========================================
+//
+// This is now much simpler.
+//
+// Instead of checking hundreds of Leaflet
+// rectangles, we:
+//
+// 1. convert GPS into British Grid metres
+// 2. calculate which 100m cell we're in
+// 3. look that cell up directly
 // ========================================
 
 function checkPlayerLocation(
@@ -1041,93 +1256,108 @@ function checkPlayerLocation(
   longitude
 ) {
 
-  // Look through the playable hectare cells.
-  //
-  // Cells outside all saved polygons aren't
-  // in mapCells, so they cannot be collected.
+  const gridPosition =
+    toBritishGrid(
+      latitude,
+      longitude
+    );
 
-  for (
-    let i = 0;
-    i < mapCells.length;
-    i++
+
+  const easting =
+    gridPosition[0];
+
+  const northing =
+    gridPosition[1];
+
+
+  const cellId =
+    getCellId(
+      easting,
+      northing
+    );
+
+
+  const cell =
+    cellLookup.get(
+      cellId
+    );
+
+
+  // This hectare isn't part of any
+  // Hectrek area.
+
+  if (
+    cell === undefined
   ) {
 
-    const cell =
-      mapCells[i];
-
-
-    const playerIsInside =
-      cell.rectangle
-        .getBounds()
-        .contains([
-          latitude,
-          longitude
-        ]);
-
-
-    if (
-      playerIsInside
-    ) {
-
-      // Find which saved area owns the cell.
-      const area =
-        areas.find(
-          function (area) {
-
-            return (
-              area.id ===
-              cell.areaId
-            );
-          }
-        );
-
-
-      if (
-        area === undefined
-      ) {
-        return;
-      }
-
-
-      // Only collect a hectare once.
-      if (
-        !area.collectedCellIds.includes(
-          cell.cellId
-        )
-      ) {
-
-        area.collectedCellIds.push(
-          cell.cellId
-        );
-
-
-        saveAreas();
-
-        updateSquareCount();
-
-
-        cell.rectangle.setStyle({
-          color: "rebeccapurple",
-          fillColor: "rebeccapurple"
-        });
-      }
-
-
-      // Because our hectare grid does not
-      // overlap itself, once we've found the
-      // player's cell we can stop searching.
-      return;
-    }
+    return;
   }
+
+
+  const area =
+    areas.find(
+      function (area) {
+
+        return (
+          area.id ===
+          cell.areaId
+        );
+      }
+    );
+
+
+  if (
+    area === undefined
+  ) {
+
+    return;
+  }
+
+
+  // Already collected.
+
+  if (
+    area.collectedCellIds
+      .includes(cellId)
+  ) {
+
+    return;
+  }
+
+
+  // Collect it.
+
+  area.collectedCellIds.push(
+    cellId
+  );
+
+
+  saveAreas();
+
+  updateSquareCount();
+
+
+  cell.rectangle.setStyle({
+    color:
+      "rebeccapurple",
+
+    fillColor:
+      "rebeccapurple"
+  });
+
+
+  checkAchievements();
 }
 
 
 
 // ========================================
-// 19. HANDLE GPS POSITION
+// 24. GPS POSITION
 // ========================================
 
-function showPosition(position) {
+function showPosition(
+  position
+) {
 
   const latitude =
     position.coords.latitude;
@@ -1143,8 +1373,6 @@ function showPosition(position) {
     longitude;
 
 
-  // Create the marker on the first
-  // successful GPS reading.
   if (
     marker === null
   ) {
@@ -1164,8 +1392,6 @@ function showPosition(position) {
   }
 
 
-  // First position after Start walk:
-  // centre and zoom.
   if (
     centreOnFirstPosition === true
   ) {
@@ -1178,12 +1404,11 @@ function showPosition(position) {
       16
     );
 
+
     centreOnFirstPosition =
       false;
   }
 
-  // Later GPS updates:
-  // follow without changing zoom.
   else if (
     followPlayer === true
   ) {
@@ -1204,10 +1429,12 @@ function showPosition(position) {
 
 
 // ========================================
-// 20. GPS ERROR
+// 25. GPS ERROR
 // ========================================
 
-function showLocationError(error) {
+function showLocationError(
+  error
+) {
 
   console.log(
     "Location error:",
@@ -1219,48 +1446,10 @@ function showLocationError(error) {
     "Location unavailable";
 }
 
-// ========================================
-// 20.1 HECTOR ANIMATIONS
-// ====
-function wakeHector(message) {
-
-  // Play Hector's uncurling animation.
-  hector.src =
-    "hector_uncurl_cheer.webp";
-
-
-  // When the animation has mostly finished,
-  // swap to the awake Hector image.
-  setTimeout(function () {
-
-    hector.src =
-      "hector_cheer_fist.png";
-
-    hectorMessage.textContent =
-      message;
-
-    hectorMessage.style.display =
-      "block";
-
-  }, 2000);
-
-
-  // After a few seconds, hide the message
-  // and curl Hector back up.
-  setTimeout(function () {
-
-    hectorMessage.style.display =
-      "none";
-
-    hector.src =
-      "hector-curled.png";
-
-  }, 6000);
-}
 
 
 // ========================================
-// 21. START WALK
+// 26. START WALK
 // ========================================
 
 startWalkButton.addEventListener(
@@ -1271,7 +1460,8 @@ startWalkButton.addEventListener(
       watchId === null
     ) {
 
-      followPlayer = true;
+      followPlayer =
+        true;
 
       centreOnFirstPosition =
         true;
@@ -1283,9 +1473,14 @@ startWalkButton.addEventListener(
             showPosition,
             showLocationError,
             {
-              enableHighAccuracy: true,
-              maximumAge: 5000,
-              timeout: 15000
+              enableHighAccuracy:
+                true,
+
+              maximumAge:
+                5000,
+
+              timeout:
+                15000
             }
           );
 
@@ -1299,7 +1494,7 @@ startWalkButton.addEventListener(
 
 
 // ========================================
-// 22. STOP WALK
+// 27. STOP WALK
 // ========================================
 
 stopWalkButton.addEventListener(
@@ -1318,7 +1513,8 @@ stopWalkButton.addEventListener(
 
       watchId = null;
 
-      followPlayer = false;
+      followPlayer =
+        false;
 
 
       trackingStatus.textContent =
@@ -1330,15 +1526,13 @@ stopWalkButton.addEventListener(
 
 
 // ========================================
-// 23. RECENTRE
+// 28. RECENTRE
 // ========================================
 
 recentreButton.addEventListener(
   "click",
   function () {
 
-    // If continuous tracking is already running
-    // and we know where the player is, use that.
     if (
       watchId !== null &&
       currentLatitude !== null &&
@@ -1354,10 +1548,10 @@ recentreButton.addEventListener(
       );
 
 
-      followPlayer = true;
+      followPlayer =
+        true;
     }
 
-    // Otherwise ask GPS for one fresh position.
     else {
 
       navigator.geolocation
@@ -1404,12 +1598,19 @@ recentreButton.addEventListener(
               true;
           },
 
+
           showLocationError,
 
+
           {
-            enableHighAccuracy: true,
-            maximumAge: 5000,
-            timeout: 15000
+            enableHighAccuracy:
+              true,
+
+            maximumAge:
+              5000,
+
+            timeout:
+              15000
           }
         );
     }
@@ -1419,18 +1620,15 @@ recentreButton.addEventListener(
 
 
 // ========================================
-// 24. MANUALLY MOVING THE MAP
+// 29. MANUALLY MOVING MAP
 // ========================================
 
-// If the player drags or zooms, stop
-// automatically following their marker.
-//
-// GPS collection keeps running.
 map.on(
   "dragstart",
   function () {
 
-    followPlayer = false;
+    followPlayer =
+      false;
   }
 );
 
@@ -1439,35 +1637,36 @@ map.on(
   "zoomstart",
   function () {
 
-    followPlayer = false;
+    followPlayer =
+      false;
   }
 );
 
 
 
 // ========================================
-// 25. RESET COLLECTED PROGRESS
-// ========================================
-//
-// This does NOT delete the polygon areas.
-//
-// It only turns collected hectares back
-// into uncollected hectares.
+// 30. RESET PROGRESS
 // ========================================
 
-if (
-  resetButton !== null
-) {
+resetButton.addEventListener(
+  "click",
+  function () {
 
-  resetButton.addEventListener(
-    "click",
-    function () {
+    const userIsSure =
+      confirm(
+        "Reset all collected progress?"
+      );
+
+
+    if (
+      userIsSure === true
+    ) {
 
       areas.forEach(
         function (area) {
 
-          area.collectedCellIds = [];
-
+          area.collectedCellIds =
+            [];
         }
       );
 
@@ -1476,55 +1675,75 @@ if (
 
       renderAllAreas();
     }
-  );
-}
-
-//========================================
-// 25.1 RESET GRID POLYGONS
-// ========================================
-resetAreasButton.addEventListener("click", function () {
-
-  const userIsSure = confirm(
-    "Delete every Hectrek area and all collected progress?"
-  );
-
-  if (userIsSure === true) {
-
-    areas = [];
-
-    saveAreas();
-
-    renderAllAreas();
-
-    boundaryPoints = [];
-
-    boundaryPolygon.setLatLngs([]);
-
-    drawingBoundary = false;
-
-    drawBoundaryButton.textContent =
-      "Draw boundary";
-
-    finishBoundaryButton.disabled =
-      true;
   }
-});
+);
+
+
 
 // ========================================
-// 26. LOAD EVERYTHING WHEN HECTREK STARTS
+// 31. DELETE ALL AREAS
+// ========================================
+
+resetAreasButton.addEventListener(
+  "click",
+  function () {
+
+    const userIsSure =
+      confirm(
+        "Delete every Hectrek area and all collected progress?"
+      );
+
+
+    if (
+      userIsSure === true
+    ) {
+
+      areas = [];
+
+
+      saveAreas();
+
+
+      drawingBoundary =
+        false;
+
+      boundaryPoints =
+        [];
+
+      boundaryPolygon.setLatLngs(
+        []
+      );
+
+
+      drawBoundaryButton.textContent =
+        "Draw boundary";
+
+      finishBoundaryButton.disabled =
+        true;
+
+
+      renderAllAreas();
+    }
+  }
+);
+
+
+
+// ========================================
+// 32. LOAD SAVED AREAS
 // ========================================
 
 renderAllAreas();
 
 
 
-// If we already have saved areas, zoom the
-// map so they are visible after refreshing.
+// Zoom so all saved areas are visible.
 if (
   areas.length > 0
 ) {
 
-  const allBoundaryPoints = [];
+  const allBoundaryPoints =
+    [];
 
 
   areas.forEach(
@@ -1550,7 +1769,8 @@ if (
     map.fitBounds(
       allBoundaryPoints,
       {
-        padding: [20, 20]
+        padding:
+          [20, 20]
       }
     );
   }
